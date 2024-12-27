@@ -79,39 +79,151 @@ uint8_t CANDriver::getBits(uint32_t value, uint8_t index) {
     return static_cast<uint8_t>((value >> shr[index] ) & bitMask[index]);
 }
 
+// void CANDriver::transmit() {
+//     if(stream.dataType != stream.none) {
+//         uint32_t identifier = this->identifier;
+//         //printf("--- Transmitting CAN Frame with ID: %d ---\n", identifier);
+//         uint8_t data[] = {0,0,0,0,0,0,0,0};
+//         identifier &= ~(bitMask[0] << shr[0]); // clear bits
+//         switch(stream.dataType) {
+//             case CANStream::dt::double_val:
+//                 //printf("Double Value: %f\n", stream.double_value);
+//                 // Data Type: 2
+//                 identifier |= (2 << shr[0]);
+//                 memcpy(data, doubleToBytes(&stream.double_value), 8);
+//                 break;
+//             case CANStream::dt::char_val:
+//                 //printf("Char Value: %c\n", stream.char_value);
+//                 // Data Type: 3
+//                 identifier |= (3 << shr[0]);
+//                 data[0] = stream.char_value;
+//                 break;
+//             case CANStream::dt::int_val:
+//                 //printf("Int Value: %d\n", stream.int_value);
+//                 // Data Type: 4
+//                 identifier |= (4 << shr[0]);
+//                 memcpy(data, intToBytes(&stream.int_value), 4);
+//                 break;
+//             default: {}
+//         }
+
+//         // hardware specific call
+//         _transmitCAN(identifier, data, 8);
+//         stream.dataType = stream.none;
+//     }
+// }
+
+
 void CANDriver::transmit() {
     if(stream.dataType != stream.none) {
         uint32_t identifier = this->identifier;
-        //printf("--- Transmitting CAN Frame with ID: %d ---\n", identifier);
-        uint8_t data[] = {0,0,0,0,0,0,0,0};
+        uint8_t data[8] = {0};
         identifier &= ~(bitMask[0] << shr[0]); // clear bits
+
+        // Declare variables outside switch
+        double double_val;
+        int32_t int_val;
+        
         switch(stream.dataType) {
             case CANStream::dt::double_val:
-                //printf("Double Value: %f\n", stream.double_value);
-                // Data Type: 2
                 identifier |= (2 << shr[0]);
-                memcpy(data, doubleToBytes(&stream.double_value), 8);
+                double_val = stream.double_value;
+                memcpy(data, &double_val, sizeof(double));
                 break;
+                
             case CANStream::dt::char_val:
-                //printf("Char Value: %c\n", stream.char_value);
-                // Data Type: 3
                 identifier |= (3 << shr[0]);
                 data[0] = stream.char_value;
                 break;
+                
             case CANStream::dt::int_val:
-                //printf("Int Value: %d\n", stream.int_value);
-                // Data Type: 4
                 identifier |= (4 << shr[0]);
-                memcpy(data, intToBytes(&stream.int_value), 4);
+                int_val = stream.int_value;
+                memcpy(data, &int_val, sizeof(int32_t));
                 break;
-            default: {}
+                
+            default: 
+                break;
         }
 
-        // hardware specific call
         _transmitCAN(identifier, data, 8);
         stream.dataType = stream.none;
     }
 }
+
+// void CANDriver::receive() {
+//     adminTasks();
+
+//     uint32_t identifier;
+//     uint8_t data[8];
+//     uint8_t length;
+
+//     // hardware specific call
+//     if (_receiveCAN(&identifier, data, &length) ) {
+//         //printf("--- Recieved CAN Frame with ID: %d ---\n", identifier);
+//         uint8_t dataType = getBits(identifier, 0);
+//         uint8_t command = getBits(identifier, 1);
+//         uint8_t motorID = getBits(identifier, 2);
+//         uint8_t busID = getBits(identifier, 3);
+
+//         // Is this a "Set Bus Id" command?
+//         if(nodeId == 0 && command == 0xF2 && dataType == 8) {
+//             if(data[0] == uniqueId[0] && data[1] == uniqueId[1] && data[2] == uniqueId[2] &&
+//                 data[3] == uniqueId[3] && data[4] == uniqueId[4] && data[5] == uniqueId[5])
+//                 nodeId = busID;
+//             else
+//                 return;
+//         }
+
+//         // Don't continue if the message is not for us
+//         if(busID != nodeId)
+//             return;
+
+//         stream.dataType = stream.none;
+//         this->identifier = identifier;
+//         char textCommand[] = "\0\0\0\0";
+//         int textCommandPosition = 0;
+
+//         // Motor
+//         if( motors.find(motorID) != motors.end() && motors[motorID] != ' ' )
+//         {
+//             textCommand[textCommandPosition] = motors[motorID];
+//             textCommandPosition++;
+//         }
+
+//         // Command
+//         if( commands.find(command) != commands.end() ) {
+//             std::vector<char> com_txt = commands[command];
+//             for(char c : com_txt) {
+//                 if(c != ' ') {
+//                     textCommand[textCommandPosition] = c;
+//                     textCommandPosition++;
+//                 }
+//             }
+//         }
+
+//         switch(dataType) {
+//             case 0: // Get value
+//                 snprintf ( stream.value_buffer, 100, "%s%c", textCommand,this->command.eol );
+//                 break;
+//             case 1: // Float - 4 bytes
+//                 snprintf ( stream.value_buffer, 100, "%s%f%c", textCommand, bytesToFloat(data), this->command.eol );
+//                 break;
+//             case 2: // Double - 8 bytes
+//                 snprintf ( stream.value_buffer, 100, "%s%f%c", textCommand, bytesToDouble(data), this->command.eol );
+//                 break;
+//             case 3: // Unsigned Char - 1 byte
+//                 snprintf ( stream.value_buffer, 100, "%s%c%c", textCommand, data[0], this->command.eol );
+//                 break;
+//             case 4: // Int - 4 bytes
+//                 snprintf ( stream.value_buffer, 100, "%s%i%c", textCommand, bytesToInt(data), this->command.eol );
+//                 break;
+//         }
+
+//         stream.value_position = 0;
+//         //printf("Commander format:\n%s",stream.value_buffer);
+//     }
+// }
 
 void CANDriver::receive() {
     adminTasks();
@@ -120,73 +232,81 @@ void CANDriver::receive() {
     uint8_t data[8];
     uint8_t length;
 
-    // hardware specific call
-    if (_receiveCAN(&identifier, data, &length) ) {
-        //printf("--- Recieved CAN Frame with ID: %d ---\n", identifier);
+    if (_receiveCAN(&identifier, data, &length)) {
         uint8_t dataType = getBits(identifier, 0);
-        uint8_t command = getBits(identifier, 1);
+        uint8_t cmdType = getBits(identifier, 1);
         uint8_t motorID = getBits(identifier, 2);
         uint8_t busID = getBits(identifier, 3);
 
-        // Is this a "Set Bus Id" command?
-        if(nodeId == 0 && command == 0xF2 && dataType == 8) {
-            if(data[0] == uniqueId[0] && data[1] == uniqueId[1] && data[2] == uniqueId[2] &&
-                data[3] == uniqueId[3] && data[4] == uniqueId[4] && data[5] == uniqueId[5])
+        // Check if it's a bus ID assignment
+        if(nodeId == 0 && cmdType == 0xF2 && dataType == 8) {
+            if(memcmp(data, uniqueId, 6) == 0) {
                 nodeId = busID;
-            else
-                return;
+            }
+            return;
         }
 
-        // Don't continue if the message is not for us
-        if(busID != nodeId)
-            return;
+        // Ignore messages not for us
+        if(busID != nodeId) return;
 
         stream.dataType = stream.none;
         this->identifier = identifier;
-        char textCommand[] = "\0\0\0\0";
-        int textCommandPosition = 0;
 
-        // Motor
-        if( motors.find(motorID) != motors.end() && motors[motorID] != ' ' )
-        {
-            textCommand[textCommandPosition] = motors[motorID];
-            textCommandPosition++;
+        // Create the command string
+        char textCommand[MAX_COMMAND_LENGTH] = {0};
+        int pos = 0;
+
+        // Add motor ID if present
+        if(motors.find(motorID) != motors.end() && motors[motorID] != ' ') {
+            textCommand[pos++] = motors[motorID];
         }
 
-        // Command
-        if( commands.find(command) != commands.end() ) {
-            std::vector<char> com_txt = commands[command];
-            for(char c : com_txt) {
-                if(c != ' ') {
-                    textCommand[textCommandPosition] = c;
-                    textCommandPosition++;
+        // Add command if present
+        if(commands.find(cmdType) != commands.end()) {
+            for(char c : commands[cmdType]) {
+                if(c != ' ' && pos < MAX_COMMAND_LENGTH - 1) {
+                    textCommand[pos++] = c;
                 }
             }
         }
 
+        // Format based on data type
         switch(dataType) {
             case 0: // Get value
-                snprintf ( stream.value_buffer, 100, "%s%c", textCommand,this->command.eol );
+                snprintf(stream.value_buffer, sizeof(stream.value_buffer), 
+                        "%s%c", textCommand, eol);
                 break;
-            case 1: // Float - 4 bytes
-                snprintf ( stream.value_buffer, 100, "%s%f%c", textCommand, bytesToFloat(data), this->command.eol );
+                
+            case 1: // Float (4 bytes)
+                float float_val;
+                memcpy(&float_val, data, sizeof(float));
+                snprintf(stream.value_buffer, sizeof(stream.value_buffer), 
+                        "%s%f%c", textCommand, float_val, eol);
                 break;
-            case 2: // Double - 8 bytes
-                snprintf ( stream.value_buffer, 100, "%s%f%c", textCommand, bytesToDouble(data), this->command.eol );
+                
+            case 2: // Double (8 bytes)
+                double double_val;
+                memcpy(&double_val, data, sizeof(double));
+                snprintf(stream.value_buffer, sizeof(stream.value_buffer), 
+                        "%s%f%c", textCommand, double_val, eol);
                 break;
-            case 3: // Unsigned Char - 1 byte
-                snprintf ( stream.value_buffer, 100, "%s%c%c", textCommand, data[0], this->command.eol );
+                
+            case 3: // Char (1 byte)
+                snprintf(stream.value_buffer, sizeof(stream.value_buffer), 
+                        "%s%c%c", textCommand, data[0], eol);
                 break;
-            case 4: // Int - 4 bytes
-                snprintf ( stream.value_buffer, 100, "%s%i%c", textCommand, bytesToInt(data), this->command.eol );
+                
+            case 4: // Int32 (4 bytes)
+                int32_t int_val;
+                memcpy(&int_val, data, sizeof(int32_t));
+                snprintf(stream.value_buffer, sizeof(stream.value_buffer), 
+                        "%s%d%c", textCommand, int_val, eol);
                 break;
         }
 
         stream.value_position = 0;
-        //printf("Commander format:\n%s",stream.value_buffer);
     }
 }
-
 void CANDriver::adminTasks() {
 
     // If we have no busId, then ask to get a NodeId

@@ -1,5 +1,6 @@
 #include "CANCommander.h"
 
+/*
 CANCommander::CANCommander(CANDriver &can, char eol, bool echo)
 {
   can_driver = &can;
@@ -55,3 +56,4 @@ void CANCommander::println(const __FlashStringHelper *message){
 void CANCommander::println(const char message){
   print(message);
 }
+*/

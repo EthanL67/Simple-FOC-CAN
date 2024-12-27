@@ -1,8 +1,8 @@
 #ifndef CANDRIVER_H
 #define CANDRIVER_H
+#endif
 
 #include <map>
-
 #include "communication/Commander.h"
 #include "CANStream.h"
 #include "can_api.h"
@@ -30,9 +30,8 @@ class CANDriver
     uint8_t uniqueId[6];
     uint8_t versionId[2] = {0, 1};
     uint16_t busIdRequestInterval = 3000;
+    char eol = '\n';  // End of line character
 
     unsigned long lastAdminTime = 0;
   private:
 };
-
-#endif
