@@ -5,16 +5,18 @@
 
 #include <string.h>
 #include "driver/gpio.h"
-#include "driver/can.h"
+#include "driver/twai.h"
+#include "esp_system.h"
+#include "esp_mac.h"
 
 void _initCAN(int tx, int rx) {
     //Initialize configuration structures using macro initializers
-    can_general_config_t g_config = CAN_GENERAL_CONFIG_DEFAULT((gpio_num_t)tx, (gpio_num_t)rx, CAN_MODE_NORMAL);
-    can_timing_config_t t_config = CAN_TIMING_CONFIG_1MBITS();
-    can_filter_config_t f_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
+    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)tx, (gpio_num_t)rx, TWAI_MODE_NORMAL);
+    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
+    twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     //Install TWAI driver
-    if (can_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
+    if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
         printf("CAN Driver installed\n");
     } else {
         printf("Failed to install CAN driver\n");
@@ -22,7 +24,7 @@ void _initCAN(int tx, int rx) {
     }
 
     //Start TWAI driver
-    if (can_start() == ESP_OK) {
+    if (twai_start() == ESP_OK) {
         printf("CAN Driver started\n");
     } else {
         printf("Failed to start CAN driver\n");
@@ -32,17 +34,17 @@ void _initCAN(int tx, int rx) {
 
 void _transmitCAN(uint32_t identifier, uint8_t *data, uint8_t length) {
     //Configure message to transmit
-    can_message_t message;
+    twai_message_t message;
     message.identifier = identifier;
     //message.extd = 1;
-    message.flags = CAN_MSG_FLAG_EXTD;
+    message.flags = TWAI_MSG_FLAG_EXTD;
     message.data_length_code = length;
     for (int i = 0; i < length; i++) {
         message.data[i] = data[i];
     }
 
     //Queue message for transmission
-    if (can_transmit(&message, pdMS_TO_TICKS(1)) == ESP_OK) {
+    if (twai_transmit(&message, pdMS_TO_TICKS(1)) == ESP_OK) {
         //printf("Message queued for transmission\n");
     } else {
         //printf("Failed to queue message for transmission\n");
@@ -50,16 +52,16 @@ void _transmitCAN(uint32_t identifier, uint8_t *data, uint8_t length) {
 }
 
 bool _receiveCAN(uint32_t *identifier, uint8_t *data, uint8_t *length) {
-    can_message_t message;
-    if (can_receive(&message, pdMS_TO_TICKS(0)) != ESP_OK) {
+    twai_message_t message;
+    if (twai_receive(&message, pdMS_TO_TICKS(0)) != ESP_OK) {
         return false; // no message
     }
 
-    if (!(message.flags & CAN_MSG_FLAG_EXTD)) {    // 29 bit
+    if (!(message.flags & TWAI_MSG_FLAG_EXTD)) {    // 29 bit
         return false; // 11 bit
     }
 
-    if (!(message.flags & CAN_MSG_FLAG_RTR)) {
+    if (!(message.flags & TWAI_MSG_FLAG_RTR)) {
         *identifier = message.identifier;
         memcpy(data, message.data, message.data_length_code);
         *length = message.data_length_code;
