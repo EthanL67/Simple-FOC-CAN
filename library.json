@@ -1,0 +1,33 @@
+{
+  "name": "SimpleFOCCAN",
+  "keywords": "foc, can, motor control, simplefoc",
+  "description": "A library for integrating CAN communication with SimpleFOC motor control. This library extends the capabilities of SimpleFOC to enable motor control over CAN networks, making it ideal for distributed motor control systems and robotics applications.",
+  "homepage": "https://github.com/rafik24/Simple-FOC-CAN",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rafik24/Simple-FOC-CAN.git"
+  },
+  "version": "1.0.0",
+  "authors": {
+    "name": "rafik24",
+    "url": "https://github.com/rafik24"
+  },
+  "export": {
+    "include": [
+      "src",
+      "examples",
+      "LICENSE",
+      "README.md"
+    ]
+  },
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": [
+    "espressif32"
+  ],
+  "dependencies": {
+    "askuric/Simple FOC": "^2.3.4"
+  }
+}
+
