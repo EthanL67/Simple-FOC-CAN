@@ -27,7 +27,8 @@
     "espressif32"
   ],
   "dependencies": {
-    "askuric/Simple FOC": "^2.3.4"
+    "askuric/Simple FOC": "^2.3.4",
+    "pazi88/STM32_CAN": "^1.1.2"
   }
 }
 
